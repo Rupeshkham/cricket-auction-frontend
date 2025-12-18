@@ -7,7 +7,8 @@ const Navbar = () => {
     <AppBar position="static" sx={{ background: "##1976d2" }}>
       <Toolbar>
         <Button color="inherit" component={Link} to="/">Home</Button>
-        <Button color="inherit" component={Link} to="/addteamplayer">Add Player & Team</Button>
+        <Button color="inherit" component={Link} to="/players">Add Player</Button>
+        <Button color="inherit" component={Link} to="/teams">Team list</Button>
       </Toolbar>
     </AppBar>
   );

@@ -4,22 +4,30 @@ import {
   Container,
   Grid,
   Typography,
-  Button,
-  TextField,
-  MenuItem,
   Paper,
   Divider,
 } from "@mui/material";
+
 import api from "../api/axiosConfig";
 import PlayerCard from "../components/PlayerCard";
 import TeamCard from "../components/TeamCard";
+import LoginModal from "../auth/LoginModal";
+import BidModal from "../components/BidModal";
+import { useAuth } from "../context/AuthContext";
 
 const HomePage = () => {
+  const { token } = useAuth();
+
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState([]);
+
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [bidData, setBidData] = useState({ teamId: "", price: "" });
-  console.log("players", players);
+
+  const [bidOpen, setBidOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  // 🔹 Fetch Players & Teams
   useEffect(() => {
     fetchAll();
   }, []);
@@ -31,54 +39,77 @@ const HomePage = () => {
     setTeams(teamRes.data);
   };
 
- const handleBid = async (e) => {
-  e.preventDefault();
-  if (!selectedPlayer || !bidData.teamId || !bidData.price) {
-    alert("Select player, team, and enter price!");
-    return;
-  }
+  // 🔐 Player click → Auth check
+  const handlePlayerClick = (player) => {
+    if (player.soldTo) return; // ❌ sold player disable
 
-  try {
-    const res = await api.post("/players/auction", {
-      playerId: selectedPlayer._id,
-      teamId: bidData.teamId,
-      price: Number(bidData.price),
-    });
+    if (!token) {
+      setSelectedPlayer(player);
+      setLoginOpen(true);
+      return;
+    }
 
-    alert(res.data.message);
+    setSelectedPlayer(player);
+    setBidOpen(true);
+  };
 
-    // Update teams with remaining points
-    const updatedTeam = res.data.updatedTeam;
-    setTeams((prev) =>
-      prev.map((t) => (t._id === updatedTeam._id ? updatedTeam : t))
-    );
+  // 💰 Submit Bid
+  const handleBid = async (e) => {
+    e.preventDefault();
 
-    // Update players (mark as sold)
-    const updatedPlayer = res.data.player;
-    setPlayers((prev) =>
-      prev.map((p) => (p._id === updatedPlayer._id ? updatedPlayer : p))
-    );
+    if (!selectedPlayer || !bidData.teamId || !bidData.price) {
+      alert("Select team and enter bid amount");
+      return;
+    }
 
-    setBidData({ teamId: "", price: "" });
+    try {
+      const res = await api.post("/players/auction", {
+        playerId: selectedPlayer._id,
+        teamId: bidData.teamId,
+        price: Number(bidData.price),
+      });
+
+      alert(res.data.message);
+
+      // Update players
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p._id === res.data.player._id ? res.data.player : p
+        )
+      );
+
+      // Update teams
+      setTeams((prev) =>
+        prev.map((t) =>
+          t._id === res.data.updatedTeam._id
+            ? res.data.updatedTeam
+            : t
+        )
+      );
+
+      closeBidModal();
+    } catch (err) {
+      alert(err.response?.data?.message || "Auction failed!");
+    }
+  };
+
+  const closeBidModal = () => {
+    setBidOpen(false);
     setSelectedPlayer(null);
-  } catch (err) {
-    console.error("Auction Error:", err);
-    alert(err.response?.data?.message || "Auction failed!");
-  }
-};
-
-
+    setBidData({ teamId: "", price: "" });
+  };
 
   return (
     <Container maxWidth="xl" sx={{ mt: 3 }}>
-      {/* 🧑‍🤝‍🧑 Team List Section */}
+      {/* ================== TEAMS ================== */}
       <Paper elevation={3} sx={{ p: 2, mb: 4 }}>
-        <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
+        <Typography variant="h5" gutterBottom fontWeight="bold" color="primary">
           Teams Overview
         </Typography>
-        <Grid container spacing={0}>
+
+        <Grid container>
           {teams.map((team) => (
-            <Grid item xs={12} sm={6} md={4} lg={2} key={team._id}>
+            <Grid key={team._id} item xs={12} sm={6} md={4} lg={2}>
               <TeamCard team={team} />
             </Grid>
           ))}
@@ -87,136 +118,101 @@ const HomePage = () => {
 
       <Divider sx={{ mb: 3 }} />
 
-      {/* 🏏 Player List Section */}
+      {/* ================== PLAYERS ================== */}
       <Typography variant="h5" gutterBottom fontWeight="bold">
         Available Players
       </Typography>
-      {/* <Grid container spacing={2}>
+
+      <Grid container spacing={2}>
         {players.map((p) => (
-          <Grid item key={p._id} xs={6} sm={4} md={2}>
-            <PlayerCard player={p} onSelect={setSelectedPlayer} />
+          <Grid key={p._id} item xs={6} sm={4} md={2}>
+            <PlayerCard
+              player={p}
+              isSold={!!p.soldTo}
+              onSelect={() => handlePlayerClick(p)}
+            />
           </Grid>
         ))}
-      </Grid> */}
-      <Grid container spacing={2}>
-  {players.map((p) => (
-    <Grid item key={p._id} xs={6} sm={4} md={2}>
-      <PlayerCard
-        player={p}
-        onSelect={setSelectedPlayer}
-        isSold={!!p.soldTo} // ✅ sold players will be dimmed
-      />
-    </Grid>
-  ))}
-</Grid>
-
-
-      {/* 💰 Bidding Section */}
-      {selectedPlayer && (
-        <Paper elevation={3} sx={{ mt: 5, p: 3 }}>
-          <Typography variant="h6" gutterBottom color="primary">
-            Bidding for {selectedPlayer.name}
-          </Typography>
-          <Box component="form" onSubmit={handleBid} display="flex" flexWrap="wrap" gap={2}>
-            <TextField
-              select
-              label="Select Team"
-              name="teamId"
-              value={bidData.teamId}
-              onChange={(e) => setBidData({ ...bidData, teamId: e.target.value })}
-              sx={{ width: 250 }}
-              required
-            >
-              {teams.map((t) => (
-                <MenuItem key={t._id} value={t._id}>
-                  {t.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Bid Points"
-              name="price"
-              type="number"
-              value={bidData.price}
-              onChange={(e) => setBidData({ ...bidData, price: e.target.value })}
-              sx={{ width: 200 }}
-              required
-            />
-            <Button type="submit" variant="contained" color="success">
-              Submit Bid
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => setSelectedPlayer(null)}
-            >
-              Cancel
-            </Button>
-          </Box>
-        </Paper>
-      )}
-
-      {/* 🏆 Sold Players Section */}
-      <Box sx={{ mt: 6 }}>
-  <Typography variant="h5" gutterBottom fontWeight="bold">
-    Team-Wise Sold Players
-  </Typography>
-
-  {teams.map((t) => (
-    <Paper key={t._id} sx={{ mt: 3, p: 3 }} elevation={2}>
-      <Typography variant="h6" sx={{ color: "#1976d2", mb: 2 }}>
-        {t.name}
-      </Typography>
-
-      <Grid container>
-        {players
-          .filter((p) => p.soldTo && p.soldTo._id === t._id) // ✅ check nested ID
-          .map((p) => (
-            <Grid item xs={12} sm={6} md={4} key={p._id}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  mt: 1,
-                  m:1,
-                  p: 1,
-                  borderRadius: 2,
-                  bgcolor: "#f5f5f5",
-                }}
-              >
-                <img
-                  src={`${p.image}`}
-                  alt={p.name}
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: "50%",
-                    marginRight: 10,
-                    objectFit: "cover",
-                  }}
-                />
-                <Box>
-                  <Typography variant="body1" fontWeight="bold">
-                    {p.name} — {p.role}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Sold for {p.price} pts to {p.soldTo.name}
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-          ))}
       </Grid>
 
-      {players.filter((p) => p.soldTo && p.soldTo._id === t._id).length === 0 && (
-        <Typography sx={{ color: "gray", mt: 2, ml: 1 }}>
-          No players sold yet.
+      {/* ================== SOLD PLAYERS ================== */}
+      <Box sx={{ mt: 6 }}>
+        <Typography variant="h5" gutterBottom fontWeight="bold">
+          Team-Wise Sold Players
         </Typography>
-      )}
-    </Paper>
-  ))}
-</Box>
 
+        {teams.map((t) => (
+          <Paper key={t._id} sx={{ mt: 3, p: 3 }}>
+            <Typography variant="h6" color="primary">
+              {t.name}
+            </Typography>
+
+            <Grid container>
+              {players
+                .filter((p) => p.soldTo?._id === t._id)
+                .map((p) => (
+                  <Grid item xs={12} sm={6} md={4} key={p._id}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        mt: 1,
+                        p: 1,
+                        bgcolor: "#f5f5f5",
+                        borderRadius: 2,
+                      }}
+                    >
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        style={{
+                          width: 50,
+                          height: 50,
+                          borderRadius: "50%",
+                          marginRight: 10,
+                        }}
+                      />
+                      <Box>
+                        <Typography fontWeight="bold">
+                          {p.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Sold for {p.price} pts
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+            </Grid>
+
+            {players.filter((p) => p.soldTo?._id === t._id).length === 0 && (
+              <Typography color="gray" mt={2}>
+                No players sold yet
+              </Typography>
+            )}
+          </Paper>
+        ))}
+      </Box>
+
+      {/* ================== BID MODAL ================== */}
+      <BidModal
+        open={bidOpen}
+        onClose={closeBidModal}
+        player={selectedPlayer}
+        teams={teams}
+        bidData={bidData}
+        setBidData={setBidData}
+        onSubmit={handleBid}
+      />
+
+      {/* ================== LOGIN MODAL ================== */}
+      <LoginModal
+        open={loginOpen}
+        onClose={() => {
+          setLoginOpen(false);
+          if (selectedPlayer) setBidOpen(true);
+        }}
+      />
     </Container>
   );
 };
