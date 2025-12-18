@@ -33,7 +33,7 @@ const AddTeamPlayerPage = () => {
   // --- Add Team ---
   const handleAddTeam = async () => {
     try {
-      const res = await axios.post("https://cricket-auction-backend.onrender.com/api/teams/create", team);
+      const res = await axios.post("https://cricket-auction-backend-647r.onrender.com/api/teams/create", team);
       alert("✅ Team added successfully!");
       console.log(res.data);
     } catch (err) {
@@ -51,7 +51,7 @@ const AddTeamPlayerPage = () => {
       formData.append("basePoints", player.basePoints);
       formData.append("image", image);
 
-      const res = await axios.post("https://cricket-auction-backend.onrender.com/api/players/add", formData, {
+      const res = await axios.post("https://cricket-auction-backend-647r.onrender.com/api/players/add", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
