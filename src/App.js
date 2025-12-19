@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Homepage from "./pages/HomePage"
 import PlayersPage from "./pages/PlayersPage";
 import TeamsPage from "./pages/TeamsPage";
+import SoldPlayersPage from "./pages/SoldPlayersPage";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/" element={<Homepage />} />
         <Route path="/players" element={<PlayersPage />} />
   <Route path="/teams" element={<TeamsPage />} />
+  <Route path="/soldplayers" element={<SoldPlayersPage />} />
       </Routes>
     </Router>
   );
