@@ -86,6 +86,7 @@ export default function PlayersPage() {
       <Table>
         <TableHead>
           <TableRow>
+                  <TableCell>Sr No</TableCell>
             <TableCell>Image</TableCell>
             <TableCell>Name</TableCell>
             <TableCell>Role</TableCell>
@@ -97,6 +98,7 @@ export default function PlayersPage() {
         <TableBody>
           {players.map((p) => (
             <TableRow key={p._id}>
+                      <TableCell>{index + 1}</TableCell>
               <TableCell>
                 <img
                   src={p.image}
