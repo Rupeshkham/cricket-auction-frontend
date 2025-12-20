@@ -96,7 +96,7 @@ export default function PlayersPage() {
         </TableHead>
 
         <TableBody>
-          {players.map((p) => (
+          {players.map((p, index) => (
             <TableRow key={p._id}>
                       <TableCell>{index + 1}</TableCell>
               <TableCell>
