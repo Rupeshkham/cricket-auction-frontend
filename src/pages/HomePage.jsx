@@ -16,8 +16,7 @@ import BidModal from "../components/BidModal";
 import { useAuth } from "../context/AuthContext";
 
 const HomePage = () => {
-  const { token } = useAuth();
-
+  const { token, loginOpen, setLoginOpen } = useAuth();
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState([]);
 
@@ -25,7 +24,6 @@ const HomePage = () => {
   const [bidData, setBidData] = useState({ teamId: "", price: "" });
 
   const [bidOpen, setBidOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
 
   // 🔹 Fetch Players & Teams
   useEffect(() => {
@@ -73,18 +71,14 @@ const HomePage = () => {
 
       // Update players
       setPlayers((prev) =>
-        prev.map((p) =>
-          p._id === res.data.player._id ? res.data.player : p
-        )
+        prev.map((p) => (p._id === res.data.player._id ? res.data.player : p)),
       );
 
       // Update teams
       setTeams((prev) =>
         prev.map((t) =>
-          t._id === res.data.updatedTeam._id
-            ? res.data.updatedTeam
-            : t
-        )
+          t._id === res.data.updatedTeam._id ? res.data.updatedTeam : t,
+        ),
       );
 
       closeBidModal();
@@ -173,9 +167,7 @@ const HomePage = () => {
                         }}
                       />
                       <Box>
-                        <Typography fontWeight="bold">
-                          {p.name}
-                        </Typography>
+                        <Typography fontWeight="bold">{p.name}</Typography>
                         <Typography variant="body2" color="text.secondary">
                           Sold for {p.price} pts
                         </Typography>
