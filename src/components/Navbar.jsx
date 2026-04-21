@@ -4,8 +4,7 @@ import {
   Toolbar,
   Button,
   Box,
-  Typography,
-  Avatar,
+  Typography
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext"; // 👈 import
